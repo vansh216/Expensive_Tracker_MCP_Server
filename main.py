@@ -73,6 +73,21 @@ async def list_expenses(start_date, end_date):  # Changed: added async
             return [dict(zip(cols, r)) for r in await cur.fetchall()]  # Changed: added await
     except Exception as e:
         return {"status": "error", "message": f"Error listing expenses: {str(e)}"}
+@mcp.tool()
+async def update_expense(expense_id, date, amount, category, subcategory="", note=""):
+    '''Update the expense entry in the database.'''
+    try:
+        async with aiosqlite.connect(DB_PATH) as c:
+            await c.execute(
+                "UPDATE expenses SET date=?, amount=?, category=?, subcategory=?, note=? WHERE id=?",
+                (date, amount, category, subcategory, note, expense_id)
+            )
+            await c.commit()
+            return {"status": "success", "id": expense_id, "message": "Expense updated successfully"}
+    except Exception as e:
+        if "readonly" in str(e).lower():
+            return {"status": "error", "message": "Database is in read-only mode. Check file permissions."}
+        return {"status": "error", "message": f"Database error: {str(e)}"}
 
 @mcp.tool()
 async def summarize(start_date, end_date, category=None):  # Changed: added async
