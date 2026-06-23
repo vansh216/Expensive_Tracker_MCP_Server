@@ -90,6 +90,23 @@ async def update_expense(expense_id, date, amount, category, subcategory="", not
         return {"status": "error", "message": f"Database error: {str(e)}"}
 
 @mcp.tool()
+async def delete_expense(expense_id:int):
+    '''Delete the expense from the database'''
+    try:
+        async with aiosqlite.connect(DB_PATH) as c:
+            await c.execute(
+                "DELETE FROM expenses WHERE id=?",
+                (expense_id,)
+            )
+            await c.commit()
+            return {"status":"success", "id":expense_id, "message":"Expense deleted successfully"}
+    except Exception as e:
+        if "readonly" in str(e).lower():
+            return {"status": "error", "message": "Database is in read-only mode. Check file permissions."}
+        return  {"status": "error", "message": f"Database error: {str(e)}"}
+
+
+@mcp.tool()
 async def summarize(start_date, end_date, category=None):  # Changed: added async
     '''Summarize expenses by category within an inclusive date range.'''
     try:
@@ -112,6 +129,7 @@ async def summarize(start_date, end_date, category=None):  # Changed: added asyn
             return [dict(zip(cols, r)) for r in await cur.fetchall()]  # Changed: added await
     except Exception as e:
         return {"status": "error", "message": f"Error summarizing expenses: {str(e)}"}
+    
 
 @mcp.resource("expense:///categories", mime_type="application/json")  # Changed: expense:// → expense:///
 def categories():
